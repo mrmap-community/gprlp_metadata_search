@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/gprlp_metadata_search" >
+        <file>icon.png</file>
+    </qresource>
+</RCC>
