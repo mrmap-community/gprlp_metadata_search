@@ -28,8 +28,9 @@ from qgis.PyQt.QtWidgets import *
 # some things for doing http requests
 from qgis.PyQt.QtCore import QUrl, QEventLoop, QUrlQuery
 from qgis.PyQt.QtNetwork import QNetworkRequest
-from qgis.core import Qgis, QgsNetworkAccessManager, QgsMessageLog, QgsSettings, QgsProviderRegistry, QgsBrowserModel, QgsProject, QgsRasterLayer
-from qgis.gui import QgsMessageBar, QgsGui
+from qgis.core import Qgis, QgsNetworkAccessManager, QgsMessageLog, QgsSettings, QgsProviderRegistry, QgsBrowserModel
+from qgis.core import QgsProject, QgsRasterLayer
+from qgis.gui import QgsMessageBar, QgsGui, QgsMessageViewer
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
@@ -101,8 +102,16 @@ class GeoportalRlpMetadataSearch:
                 "title": "Map Layer",
                 "value": "wms",
                 },
+            {
+                "title": "Dataset",
+                "value": "dataset",
+                },
+            {
+                "title": "Remote CSW",
+                "value": "csw",
+                },
         ]
-
+        # TODO - remote CWS only for test purposes
         # definition of catalogue uri
         self.search_catalogues = [
             {
@@ -250,9 +259,9 @@ class GeoportalRlpMetadataSearch:
         return url.toString()
 
 
-    def add_ows(self, data_url):
+    def add_ows(self, data_url, given_service_type="wms"):
 
-        # from MetaSearch Plugin - thx to tom
+        # from MetaSearch Plugin - thx to tom kralidis
         # https://github.com/qgis/QGIS/blob/master/python/plugins/MetaSearch/dialogs/maindialog.py#L708
         #
         # from https://github.com/qgis/QGIS/blob/4ff41e71ad7a397ca05af4186ea0339af81752cc/python/plugins/MetaSearch/util.py
@@ -260,12 +269,12 @@ class GeoportalRlpMetadataSearch:
         # QgsMessageLog.logMessage("Url to clean: " + data_url, 'GeoPortal.rlp search', level=Qgis.Info)
 
         QgsMessageLog.logMessage("Load WMS cleaned url: " + self.clean_ows_url(data_url), 'GeoPortal.rlp search', level=Qgis.Info)
-
-        service_type = ['OGC:WMS/OGC:WMTS', 'wms', 'wms']
-        service_name = '%s from GeoPortal.rlp context search' % service_type[1]
+        if given_service_type == "wms":
+            service_type = ['OGC:WMS/OGC:WMTS', 'wms', 'wms']
+        if given_service_type == "wfs":
+            service_type = ['OGC:WFS', 'wfs', 'WFS']
+        service_name = 'Result from GeoPortal.rlp search plugin' # % service_type[1]
         conn_name_matches = []
-
-
 
         # store connection in browser
         # check if there is a connection with same name
@@ -299,7 +308,6 @@ class GeoportalRlpMetadataSearch:
         self.settings.endGroup()
         #refresh browser content - but howto reload tree?
         # only refresh the view not the model!
-
         # self.browser_model.initialize()
 
         browser_model = self.iface.browserModel()
@@ -319,11 +327,8 @@ class GeoportalRlpMetadataSearch:
         # simply add wms layer
         # rlayer = QgsRasterLayer(clean_ows_url(data_url), 'test', 'wms')
         # QgsProject.instance().addMapLayer(rlayer)
-
-
         # tree_0.expand(10)
-
-        #self.iface.mainWindow().findChildren(QWidget, 'Browser')[0].refresh()
+        # self.iface.mainWindow().findChildren(QWidget, 'Browser')[0].refresh()
         # browser_model = self.iface.browserModel()
         # browser_model.reload()
         # browser_widget = self.iface.mainWindow().findChildren(QWidget, 'Browser')[0]
@@ -331,16 +336,21 @@ class GeoportalRlpMetadataSearch:
         # get child with id of wms ... and setExpanded https://doc.qt.io/qt-5/qtreeview.html#setExpanded
         # QTreeView::setTreePosition(int index)
         # open wms part?
-        #self.browser_model.initialize()
+        # self.browser_model.initialize()
         # QgsGui.QgsBrowserDockWidget.initialize()
         # QgsGui.
+        output = QgsMessageViewer()
+        output.setFixedSize(500,200)
+        output.setTitle(self.tr("Resource registration"))
+        output_text = "%s Resource added to QGIS Browser under 'Result from GeoPortal.rlp search plugin'. You may open the Browser and add it to your Layers." % service_type[1]
+        output.setMessageAsPlainText(output_text)
+        output.showMessage()
         return
 
-
-        #wms_dlg = QgsProviderRegistry.instance()
-        #wms_dlg.show()
-        #provider_list = QgsGui.providerGuiRegistry.providerList()
-        #for provider in provider_list:
+        # wms_dlg = QgsProviderRegistry.instance()
+        # wms_dlg.show()
+        # provider_list = QgsGui.providerGuiRegistry.providerList()
+        # for provider in provider_list:
         #    QgsMessageLog.logMessage("Provider: " + provider, 'GeoPortal.rlp search', level=Qgis.Info)
         """
         ows_provider = QgsGui.sourceSelectProviderRegistry().\
@@ -360,24 +370,22 @@ class GeoportalRlpMetadataSearch:
             conn_cmb.setCurrentIndex(index)
         getattr(ows_provider, connect)()
         """
-        pass
+
 
     def on_clicked_context_layer(self, item):
         """
         /***************************************************************************
-        function which will be invoked, if a layer of the context layertree is selected
+        function which will be invoked, if a layer of an ows context layertree is selected
         /***************************************************************************
         """
         self.reset_resource_view()
         selected_feature = item.data(1, 0)
-        QgsMessageLog.logMessage("Title of clicked layer: " + selected_feature.properties.title, 'GeoPortal.rlp search', level=Qgis.Info)
+        # QgsMessageLog.logMessage("Title of clicked layer: " + selected_feature.properties.title, 'GeoPortal.rlp search', level=Qgis.Info)
         # add layer title to resource view
-        #self.dlg.resource_title.setText(selected_feature.properties.title)
         self.dlg.labelResourceType.setText("Context layer")
         self.dlg.textBrowserResourceAbstract.append(selected_feature.properties.title)
         # get getmap uri from offering
         offerings = selected_feature.offerings
-        # test = json.dumps(offerings)
         # QgsMessageLog.logMessage("Offerings: " + str(test), 'GeoPortal.rlp search', level=Qgis.Info)
         wms_capabilities = False
         for offering in offerings:
@@ -414,28 +422,24 @@ class GeoportalRlpMetadataSearch:
 
 
     def on_clicked_resource(self, item, type):
+        """
+        Function that may be usefull, if we may handle the resources in a common way. Not used now!
+        """
         QgsMessageLog.logMessage("type found: " + type, 'GeoPortal.rlp search', level=Qgis.Info)
         return
         type = "wmc"
         # check for type
-
-
         if type == "wmc":
             pass
         if type == "layer":
             pass
         if type == "context":
             pass
-
-
-
         pass
 
 
     def on_clicked_wmc(self, item):
-        """Show detailed information about wmc in other """
-        #QgsMessageLog.logMessage("Type: " + type, 'GeoPortal.rlp search',
-        #                                 level=Qgis.Info)
+        """Show detailed information about the ows context in the detail form"""
 
         self.reset_resource_view()
         try:
@@ -444,13 +448,12 @@ class GeoportalRlpMetadataSearch:
             QgsMessageLog.logMessage("No attribute id for this resource - no detailed info available", 'GeoPortal.rlp search',
                                          level=Qgis.Info)
             resource_id = 0
-
         self.dlg.labelResourceId.setText(str(resource_id))
         self.dlg.labelResourceType.setText("OWS Context")
         self.dlg.pushButtonLoad.setEnabled(False)
         self.dlg.textBrowserResourceAbstract.clear()
         self.dlg.treeWidgetResourceDetail.clear()
-        # load preview image
+        # load the preview image from registry
         try:
             preview_url = item.data(1, 0).previewURL
             result_content = self.open_remote(preview_url)
@@ -472,7 +475,7 @@ class GeoportalRlpMetadataSearch:
             QgsMessageLog.logMessage("No attribute loadCount for this resource", 'GeoPortal.rlp search',
                                          level=Qgis.Info)
         # add further information
-        #select domain from comboBox
+        # select domain from comboBox
         search_domain = str(self.dlg.comboBoxSearchCatalogue.currentData())
         # search_domain = "https://www.geoportal.rlp.de"
         search_path = "/mapbender/php/mod_exportWmc.php" #?wmcId=14971&outputFormat=json"
@@ -482,11 +485,9 @@ class GeoportalRlpMetadataSearch:
         }
         # add parameter
         request_url = search_domain + search_path + "?" + urllib.parse.urlencode(load_parameters)
-
         #"https://www.geoportal.rlp.de/mapbender/php/mod_exportWmc?wmcId=666&outputFormat=json"
-        self.dlg.labelAccessUrl.setText('<a href="' + request_url + '">GetCapabilities</a>')
+        self.dlg.labelAccessUrl.setText('<a href="' + request_url + '">OWS Context json</a>')
         self.dlg.labelAccessUrl.setOpenExternalLinks(True)
-
         # respOrg
         self.dlg.labelOrga.setText(str(item.data(1, 0).respOrg))
         # date
@@ -495,18 +496,16 @@ class GeoportalRlpMetadataSearch:
         # abstract
         self.dlg.textBrowserResourceAbstract.append(str(item.data(1, 0).title))
         self.dlg.textBrowserResourceAbstract.append(" - " + str(item.data(1, 0).abstract))
-
         # mdLink
         self.dlg.labelMetadata.setText('<a href="' + str(item.data(1, 0).mdLink) + '">Online Metadata</a>')
         self.dlg.labelMetadata.setOpenExternalLinks(True)
-
         self.dlg.pushButtonLoad.setEnabled(True)
         self.dlg.pushButtonLoad.clicked.disconnect()
         self.dlg.pushButtonLoad.clicked.connect(self.load_ows_context)
 
 
     def on_clicked_layer(self, item):
-        """Show detailed information about wmc in other """
+        """Show detailed information about layer from layer search"""
         self.reset_resource_view()
         self.dlg.labelResourceType.setText("Map layer")
         try:
@@ -515,15 +514,12 @@ class GeoportalRlpMetadataSearch:
             QgsMessageLog.logMessage("No attribute id for this resource - no detailed info available", 'GeoPortal.rlp search',
                                          level=Qgis.Info)
             resource_id = 0
-
-
         #self.dlg.labelResourceId.setText("")
         self.dlg.pushButtonLoad.setEnabled(False)
         #self.dlg.textBrowserResourceAbstract.clear()
         self.dlg.treeWidgetResourceDetail.clear()
         # TODO alter this for clicked item in tree widget
         self.dlg.textBrowserResourceAbstract.append(item.text(0))
-
         try:
             abstract = str(item.data(1, 0).abstract)
             self.dlg.textBrowserResourceAbstract.append(" - " + abstract)
@@ -545,15 +541,14 @@ class GeoportalRlpMetadataSearch:
                                          level=Qgis.Critical)
         except:
             self.dlg.labelPreview.setText("No preview")
-
         # load extent - remote image is to slow!
         try:
             # get extent from json
             bbox = str(item.data(1, 0).bbox)
-            self.dlg.labelExtent.setText("Extent (EPSG:4326): " + bbox)
+            self.dlg.labelExtent.setText(bbox)
         except:
             QgsMessageLog.logMessage("No attribute bbox for this resource", 'GeoPortal.rlp search',
-                                         level=Qgis.Critical)
+                                         level=Qgis.Info)
         # load extent image
         """
         try:
@@ -623,6 +618,272 @@ class GeoportalRlpMetadataSearch:
                                          level=Qgis.Info)
 
 
+    def on_clicked_dataset(self, item):
+        """Show detailed information about the dataset which was found"""
+        self.reset_resource_view()
+        self.dlg.labelResourceType.setText("Dataset")
+        try:
+            resource_id = item.data(1, 0).id
+        except:
+            QgsMessageLog.logMessage("No attribute id for this resource - no detailed info available", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+            resource_id = 0
+        self.dlg.pushButtonLoad.setEnabled(False)
+        self.dlg.treeWidgetResourceDetail.clear()
+        # TODO alter this for clicked item in tree widget
+        self.dlg.textBrowserResourceAbstract.append(item.text(0))
+        try:
+            abstract = str(item.data(1, 0).abstract)
+            self.dlg.textBrowserResourceAbstract.append(" - " + abstract)
+        except:
+            QgsMessageLog.logMessage("No attribute abstract for this resource", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+        # load preview image
+        try:
+            preview_url = item.data(1, 0).previewURL
+            result_content = self.open_remote(preview_url)
+            if result_content:
+                # build
+                pixmap = QPixmap()
+                pixmap.loadFromData(result_content)
+                # draw preview
+                self.dlg.labelPreview.setPixmap(pixmap)
+            else:
+                QgsMessageLog.logMessage("An error occured while try to open url: " + preview_url, 'GeoPortal.rlp search',
+                                         level=Qgis.Critical)
+        except:
+            self.dlg.labelPreview.setText("No preview")
+        # load extent - remote image is to slow!
+        try:
+            # get extent from json
+            bbox = str(item.data(1, 0).bbox)
+            self.dlg.labelExtent.setText("Extent (EPSG:4326): " + bbox)
+        except:
+            QgsMessageLog.logMessage("No attribute bbox for this resource", 'GeoPortal.rlp search',
+                                         level=Qgis.Critical)
+        # load extent image
+        """
+        try:
+            # get extent from json
+            bbox = item.data(1, 0).bbox
+            bbox_list = str(bbox).split(',')
+            extent_url = "https://www.geoportal.rlp.de/cgi-bin/mapserv?map=/data/mapbender/tools/wms_extent/extents.map&VERSION=1.1.1&REQUEST=GetMap&SERVICE=WMS&LAYERS=demis,ows_layer_target,extent,metadata_polygon&STYLES=&SRS=EPSG:4326&BBOX=4,45,9,56&WIDTH=120&HEIGHT=120&FORMAT=image/png&BGCOLOR=0xffffff&TRANSPARENT=TRUE&EXCEPTIONS=application/vnd.ogc.se_inimage&minx=" + bbox_list[0] + "&miny=" + bbox_list[1] + "&maxx=" + bbox_list[2] + "&maxy=" + bbox_list[3]
+            result_content = self.open_remote(extent_url)
+            if result_content:
+                # build
+                pixmap = QPixmap()
+                pixmap.loadFromData(result_content)
+                # draw preview
+                self.dlg.labelExtent.setPixmap(pixmap)
+            else:
+                QgsMessageLog.logMessage("An error occured while try to open url: " + extent_url, 'GeoPortal.rlp search',
+                                         level=Qgis.Critical)
+        except:
+            self.dlg.labelExtent.setText("No Extent")
+        """
+        # add load count
+        try:
+            load_count = item.data(1, 0).loadCount
+            self.dlg.labelLoadCount.setText(str(item.data(1, 0).loadCount))
+        except:
+            QgsMessageLog.logMessage("No attribute loadCount for this resource", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+        # set access url and activate load button, if the url is available
+        self.dlg.labelResourceId.setText(str(resource_id))
+        """
+        try:
+            capabilities_url = str(item.data(1, 0).getCapabilitiesUrl)
+            self.dlg.labelAccessUrl.setText('<a href="' + capabilities_url + '">GetCapabilities</a>')
+            self.dlg.labelAccessUrl.setOpenExternalLinks(True)
+            # add function to load button
+            self.dlg.pushButtonLoad.setEnabled(True)
+            self.dlg.pushButtonLoad.disconnect()
+            self.dlg.pushButtonLoad.clicked.connect(lambda: self.add_ows(capabilities_url))
+        except:
+            QgsMessageLog.logMessage("No attribute getCapabilitiesUrl for this resource", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+        """
+        try:
+            metadata_url = str(item.data(1, 0).mdLink)
+            self.dlg.labelMetadata.setText('<a href="' + metadata_url + '">Online Metadata</a>')
+            self.dlg.labelMetadata.setOpenExternalLinks(True)
+        except:
+            QgsMessageLog.logMessage("No attribute mdLink for this resource", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+        """
+        # pull top level information - this is the information of the service itself
+        top_level_item = item
+        i = 0
+        while top_level_item.parent():
+            i = i + 1
+            top_level_item = top_level_item.parent()
+        top_level_item = top_level_item.child(0) # cause the top level ist not the service, but the header
+        try:
+            resp_org = str(top_level_item.data(1, 0).respOrg)
+            self.dlg.labelOrga.setText(resp_org)
+        except:
+            QgsMessageLog.logMessage("No attribute respOrg for this resource", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+        """
+        try:
+            date = str(item.data(1, 0).date)
+            # TODO - use iso format
+            self.dlg.labelDate.setText(date)
+        except:
+            QgsMessageLog.logMessage("No attribute date for this resource", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+        try:
+            resp_orga = str(item.data(1, 0).respOrg)
+            # TODO - use iso format
+            self.dlg.labelOrga.setText(resp_orga)
+        except:
+            QgsMessageLog.logMessage("No attribute respOrg for this resource", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+        self.load_access_options(item)
+
+
+    def show_loader_img(self):
+        """
+        Should be used to show the loading of an external resource - does not work at the moment
+        """
+        self.dlg.labelSearchAnimation.setText("Searching...")
+        pass
+
+
+    def hide_loader_img(self):
+        """
+        Should be used to hide the loading of an external resource - does not work at the moment
+        """
+        self.dlg.labelSearchAnimation.setText("Ready")
+        pass
+
+
+    def on_clicked_remote_dataset(self, item):
+        """Show detailed information about the dataset which was found by remote CSW search"""
+        self.reset_resource_view()
+        self.dlg.labelResourceType.setText("Dataset")
+        try:
+            resource_id = item.data(1, 0).datasetId
+        except:
+            QgsMessageLog.logMessage("No attribute datasetId for this resource - no detailed info available", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+            resource_id = 0
+        self.dlg.pushButtonLoad.setEnabled(False)
+        self.dlg.treeWidgetResourceDetail.clear()
+        # TODO alter this for clicked item in tree widget
+        self.dlg.textBrowserResourceAbstract.append(item.text(0))
+        try:
+            abstract = str(item.data(1, 0).abstract)
+            self.dlg.textBrowserResourceAbstract.append(" - " + abstract)
+        except:
+            QgsMessageLog.logMessage("No attribute abstract for this resource", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+        # load preview image
+        try:
+            preview_url = item.data(1, 0).previewURL
+            result_content = self.open_remote(preview_url)
+            if result_content:
+                # build
+                pixmap = QPixmap()
+                pixmap.loadFromData(result_content)
+                # draw preview
+                self.dlg.labelPreview.setPixmap(pixmap)
+            else:
+                QgsMessageLog.logMessage("An error occured while try to open url: " + preview_url, 'GeoPortal.rlp search',
+                                         level=Qgis.Critical)
+        except:
+            self.dlg.labelPreview.setText("No preview")
+
+        # load extent - remote image is to slow!
+        try:
+            # get extent from json
+            bbox = str(item.data(1, 0).bbox)
+            self.dlg.labelExtent.setText(bbox)
+        except:
+            QgsMessageLog.logMessage("No attribute bbox for this resource", 'GeoPortal.rlp search',
+                                         level=Qgis.Critical)
+        # load extent image
+        """
+        try:
+            # get extent from json
+            bbox = item.data(1, 0).bbox
+            bbox_list = str(bbox).split(',')
+            extent_url = "https://www.geoportal.rlp.de/cgi-bin/mapserv?map=/data/mapbender/tools/wms_extent/extents.map&VERSION=1.1.1&REQUEST=GetMap&SERVICE=WMS&LAYERS=demis,ows_layer_target,extent,metadata_polygon&STYLES=&SRS=EPSG:4326&BBOX=4,45,9,56&WIDTH=120&HEIGHT=120&FORMAT=image/png&BGCOLOR=0xffffff&TRANSPARENT=TRUE&EXCEPTIONS=application/vnd.ogc.se_inimage&minx=" + bbox_list[0] + "&miny=" + bbox_list[1] + "&maxx=" + bbox_list[2] + "&maxy=" + bbox_list[3]
+            result_content = self.open_remote(extent_url)
+            if result_content:
+                # build
+                pixmap = QPixmap()
+                pixmap.loadFromData(result_content)
+                # draw preview
+                self.dlg.labelExtent.setPixmap(pixmap)
+            else:
+                QgsMessageLog.logMessage("An error occured while try to open url: " + extent_url, 'GeoPortal.rlp search',
+                                         level=Qgis.Critical)
+        except:
+            self.dlg.labelExtent.setText("No Extent")
+        """
+        # add load count
+        try:
+            load_count = item.data(1, 0).loadCount
+            self.dlg.labelLoadCount.setText(str(item.data(1, 0).loadCount))
+        except:
+            QgsMessageLog.logMessage("No attribute loadCount for this resource", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+        # set access url and activate load button, if the url is available
+        self.dlg.labelResourceId.setText(str(resource_id))
+        """
+        try:
+            capabilities_url = str(item.data(1, 0).getCapabilitiesUrl)
+            self.dlg.labelAccessUrl.setText('<a href="' + capabilities_url + '">GetCapabilities</a>')
+            self.dlg.labelAccessUrl.setOpenExternalLinks(True)
+            # add function to load button
+            self.dlg.pushButtonLoad.setEnabled(True)
+            self.dlg.pushButtonLoad.disconnect()
+            self.dlg.pushButtonLoad.clicked.connect(lambda: self.add_ows(capabilities_url))
+        except:
+            QgsMessageLog.logMessage("No attribute getCapabilitiesUrl for this resource", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+        """
+        try:
+            metadata_url = str(item.data(1, 0).htmlLink)
+            self.dlg.labelMetadata.setText('<a href="' + metadata_url + '">Online Metadata</a>')
+            self.dlg.labelMetadata.setOpenExternalLinks(True)
+        except:
+            QgsMessageLog.logMessage("No attribute mdLink for this resource", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+        """
+        # pull top level information - this is the information of the service itself
+        top_level_item = item
+        i = 0
+        while top_level_item.parent():
+            i = i + 1
+            top_level_item = top_level_item.parent()
+        top_level_item = top_level_item.child(0) # cause the top level ist not the service, but the header
+        try:
+            resp_org = str(top_level_item.data(1, 0).respOrg)
+            self.dlg.labelOrga.setText(resp_org)
+        except:
+            QgsMessageLog.logMessage("No attribute respOrg for this resource", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+        """
+        try:
+            date = str(item.data(1, 0).date)
+            # TODO - use iso format
+            self.dlg.labelDate.setText(date)
+        except:
+            QgsMessageLog.logMessage("No attribute date for this resource", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+
+        try:
+            resp_orga = str(item.data(1, 0).respOrg)
+            # TODO - use iso format
+            self.dlg.labelOrga.setText(resp_orga)
+        except:
+            QgsMessageLog.logMessage("No attribute respOrg for this resource", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+        self.load_remote_access_options(item)
+
+
     def run(self):
         """Run method that performs all the real work"""
 
@@ -631,17 +892,17 @@ class GeoportalRlpMetadataSearch:
         if self.first_start == True:
             self.first_start = False
             self.dlg = GeoportalRlpMetadataSearchDialog()
-
             for resource in self.search_resources_list:
                 self.dlg.comboBoxSearchResources.addItem(resource["title"], resource["value"])
-
             # search_catalogues
             for resource in self.search_catalogues:
                 self.dlg.comboBoxSearchCatalogue.addItem(resource["title"], resource["value"])
-
             # important - events should only be added once - otherwise we will go into trouble!
             self.dlg.pushButton.clicked.connect(lambda: self.start_search(page=1, resource_type=self.dlg.comboBoxSearchResources.currentData()))
             self.dlg.pushButtonLoad.clicked.connect(self.load_ows_context)
+            # if selected a remote search - the available CSW should be listed in the combo box below
+            self.dlg.comboBoxSearchResources.currentIndexChanged.connect(self.on_select_search_resource)
+            self.dlg.comboBoxSearchCatalogue.currentIndexChanged.connect(self.on_select_search_catalogue)
             # add logo
             logo_url = "https://www.geoportal.rlp.de/static/useroperations/images/logo-geoportal.png"
             result_content = self.open_remote(logo_url)
@@ -665,7 +926,336 @@ class GeoportalRlpMetadataSearch:
             pass
 
 
+    def find_layer_by_id(self, layer, layer_id):
+        """Function to find layer by id in hierarchical layertree which is given by the search module"""
+        for sub_layer in layer:
+            # print(str(sub_layer['title']))
+            # print(str(sub_layer['id']))
+            if int(sub_layer.id) == int(layer_id):
+                # QgsMessageLog.logMessage("layer found with id: " + str(sub_layer.id) + " and title: " + str(sub_layer.title), 'GeoPortal.rlp search', level=Qgis.Info)
+                return sub_layer
+            # print("after compare")
+            if hasattr(sub_layer, "layer"):
+                # very important - return before invoking recursive function !!!
+                return self.find_layer_by_id(sub_layer.layer, layer_id)
+
+
+    def load_access_options(self, item):
+        """Function to load the access options from the search results. They are in the coupledResources object."""
+        # build
+        parent_node = QTreeWidgetItem()
+        parent_node.setText(0, "Access options")
+        try:
+            coupled_resources = item.data(1, 0).coupledResources
+        except:
+            QgsMessageLog.logMessage("An error occured while reading coupledResources", 'GeoPortal.rlp search',
+                                         level=Qgis.Critical)
+            return
+        try:
+            download_count = str(len(coupled_resources.inspireAtomFeeds))
+        except:
+            download_count = "0"
+        try:
+            view_count = str(len(coupled_resources.layer))
+        except:
+            view_count = "0"
+        download_node = QTreeWidgetItem()
+        download_node.setText(0, "Download options (" + download_count + ")")
+        if download_count != "0":
+            for download_option in coupled_resources.inspireAtomFeeds:
+                download_option.service_type = "download"
+                download_option_node = QTreeWidgetItem()
+                download_option_node.setText(0, download_option.serviceTitle)
+                download_option_node.setToolTip(0, download_option.serviceTitle)
+                download_option_node.setData(1, 0, download_option)
+                download_node.addChild(download_option_node)
+        view_node = QTreeWidgetItem()
+        view_node.setText(0, "View options (" + view_count + ")")
+        if view_count != "0":
+            for view_option in coupled_resources.layer:
+                view_option_node = QTreeWidgetItem()
+                layer_id = view_option.id
+                # TODO  test if layer is not already set at top level!
+                coupled_layer = self.find_layer_by_id(view_option.srv.layer, layer_id)
+                QgsMessageLog.logMessage("Coupled layer title: " + coupled_layer.title, 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+                if coupled_layer:
+                    coupled_layer.service_type = "view"
+                try:
+                    view_option_node.setText(0, coupled_layer.title + " (" + str(layer_id) + ")")
+                    view_option_node.setToolTip(0, coupled_layer.title + " (" + str(layer_id) + ")")
+                    view_option_node.setData(1, 0, coupled_layer)
+                except:
+                    view_option_node.setText(0, str(layer_id))
+                view_node.addChild(view_option_node)
+        """
+        for view_layer in coupled_resources.layer:
+            pass
+        """
+        self.dlg.treeWidgetResourceDetail.clear()
+        parent_node.addChild(view_node)
+        parent_node.addChild(download_node)
+        # QgsMessageLog.logMessage("Widget cleared", 'GeoPortal.rlp search', level=Qgis.Info)
+        #self.build_tree_recursive(result_object.features, parent_node, "")
+        self.dlg.treeWidgetResourceDetail.addTopLevelItem(parent_node)
+        #self.dlg.treeWidgetResourceDetail.disconnect()
+        self.dlg.treeWidgetResourceDetail.expandAll()
+        try:
+            self.dlg.treeWidgetResourceDetail.itemClicked.disconnect()
+        except:
+            pass
+        self.dlg.treeWidgetResourceDetail.itemClicked.connect(self.on_clicked_service_option)
+
+
+    def load_remote_access_options(self, item):
+        """Function to load the remote access options by using the GeoPortal.rlp coupled resource resolver."""
+        # build
+        parent_node = QTreeWidgetItem()
+        parent_node.setText(0, "Access options")
+        # resolve coupled resources by csw request
+        """
+        Build initial resolving  request
+        """
+        # read search domain from comboBox
+        resolve_domain = str(self.dlg.comboBoxSearchCatalogue.currentData())
+        #search_domain = "https://www.geoportal.rlp.de"
+        resolve_path = "/mapbender/php/mod_getCoupledResourcesForDataset.php"
+        resolve_parameters = {
+            "getRecordByIdUrl": item.data(1, 0).mdLink
+        }
+        # add parameters
+        request_url = resolve_domain + resolve_path + "?" + urllib.parse.urlencode(resolve_parameters)
+        QgsMessageLog.logMessage("Try to open url: " + request_url, 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+        result_content = self.open_remote(request_url)
+        result_object = False
+        if result_content:
+            result_object = json.loads(bytes(result_content).decode(), object_hook=lambda d: SimpleNamespace(**d))
+        else:
+            QgsMessageLog.logMessage("An error occured while try to open url: " + request_url, 'GeoPortal.rlp search',
+                                         level=Qgis.Critical)
+        if result_object and result_object.success == True:
+            QgsMessageLog.logMessage("Resolved coupled services successfully", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+            count_dls = 0
+            count_view = 0
+            download_node = QTreeWidgetItem()
+            view_node = QTreeWidgetItem()
+            if result_object.result.service:
+                for service in result_object.result.service:
+                    if service.serviceType == "download":
+                        count_dls = count_dls + 1
+                        download_option_node = QTreeWidgetItem()
+                        download_option_node.setText(0, service.serviceTitle)
+                        download_option_node.setToolTip(0, service.serviceTitle)
+                        download_option_node.setData(1, 0, service)
+                        download_node.addChild(download_option_node)
+                    if service.serviceType == "view":
+                        count_view = count_view + 1
+                        view_option_node = QTreeWidgetItem()
+                        view_option_node.setText(0, service.serviceTitle)
+                        view_option_node.setToolTip(0, service.serviceTitle)
+                        view_option_node.setData(1, 0, service)
+                        view_node.addChild(view_option_node)
+            download_node.setText(0, "Download options (" + str(count_dls) + ")")
+            view_node.setText(0, "View options (" + str(count_view) + ")")
+            self.dlg.treeWidgetResourceDetail.clear()
+            parent_node.addChild(view_node)
+            parent_node.addChild(download_node)
+            self.dlg.treeWidgetResourceDetail.addTopLevelItem(parent_node)
+            self.dlg.treeWidgetResourceDetail.expandAll()
+            try:
+                self.dlg.treeWidgetResourceDetail.itemClicked.disconnect()
+            except:
+                pass
+            # add on click signal
+            self.dlg.treeWidgetResourceDetail.itemClicked.connect(self.on_clicked_remote_service_option)
+            return
+        else:
+            QgsMessageLog.logMessage("An error occured while resolving coupledResources", 'GeoPortal.rlp search',
+                                         level=Qgis.Critical)
+            return
+
+
+    def on_clicked_remote_service_option(self, item):
+        """
+
+        Show detailed information about service resource
+
+        """
+        self.reset_resource_view()
+        self.dlg.pushButtonLoad.setEnabled(False)
+        if item.data(1, 0):
+            if item.data(1, 0).serviceType == "view":
+                self.dlg.labelResourceType.setText("WMS")
+                try:
+                    capabilities_url = str(item.data(1, 0).accessUrl)
+                    self.dlg.labelAccessUrl.setText('<a href="' + capabilities_url + '">GetCapabilities</a>')
+                    self.dlg.labelAccessUrl.setOpenExternalLinks(True)
+                    # add function to load button
+                    self.dlg.pushButtonLoad.setEnabled(True)
+                    self.dlg.pushButtonLoad.disconnect()
+                    self.dlg.pushButtonLoad.clicked.connect(lambda: self.add_ows(capabilities_url))
+                except:
+                    QgsMessageLog.logMessage("No attribute accessUrl for this resource", 'GeoPortal.rlp search',
+                                             level=Qgis.Info)
+            if item.data(1, 0).serviceType == "download":
+                if item.data(1, 0).serviceSubType == "ATOM":
+                    self.dlg.labelResourceType.setText("ATOM Feed")
+                    try:
+                        access_url = str(item.data(1, 0).accessClient)
+                        self.dlg.labelAccessUrl.setText('<a href="' + access_url + '">Access URL</a>')
+                        self.dlg.labelAccessUrl.setOpenExternalLinks(True)
+                    except:
+                        QgsMessageLog.logMessage("No attribute accessUrl for this resource", 'GeoPortal.rlp search',
+                                                 level=Qgis.Info)
+                if item.data(1, 0).serviceSubType == "WFS":
+                    self.dlg.labelResourceType.setText("WFS")
+                    try:
+                        capabilities_url = str(item.data(1, 0).accessUrl)
+                        self.dlg.labelAccessUrl.setText('<a href="' + capabilities_url + '">GetCapabilities</a>')
+                        self.dlg.labelAccessUrl.setOpenExternalLinks(True)
+                        # add function to load button
+                        self.dlg.pushButtonLoad.setEnabled(True)
+                        self.dlg.pushButtonLoad.disconnect()
+                        self.dlg.pushButtonLoad.clicked.connect(lambda: self.add_ows(capabilities_url, "wfs"))
+                    except:
+                        QgsMessageLog.logMessage("No attribute accessUrl for this resource", 'GeoPortal.rlp search',
+                                                 level=Qgis.Info)
+            # TODO alter this for clicked item in tree widget
+            self.dlg.textBrowserResourceAbstract.append(item.text(0))
+            try:
+                metadata_url = str(item.data(1, 0).htmlLink)
+                self.dlg.labelMetadata.setText('<a href="' + metadata_url + '">Online Metadata</a>')
+                self.dlg.labelMetadata.setOpenExternalLinks(True)
+            except:
+                QgsMessageLog.logMessage("No attribute mdLink for this resource", 'GeoPortal.rlp search',
+                                             level=Qgis.Info)
+            try:
+                resource_id = item.data(1, 0).id
+            except:
+                QgsMessageLog.logMessage("No attribute id for this resource - no detailed info available",
+                                         'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+                resource_id = 0
+
+
+    def on_clicked_service_option(self, item, service_type):
+        """
+
+        Invoked when clicked on a coupled service information from geoportal dataset search
+
+        """
+        self.reset_resource_view()
+        self.dlg.pushButtonLoad.setEnabled(False)
+        if item.data(1, 0):
+            if item.data(1, 0).service_type == "view":
+                self.dlg.labelResourceType.setText("WMS Layer")
+                try:
+                    capabilities_url = str(item.data(1, 0).getCapabilitiesUrl)
+                    self.dlg.labelAccessUrl.setText('<a href="' + capabilities_url + '">GetCapabilities</a>')
+                    self.dlg.labelAccessUrl.setOpenExternalLinks(True)
+                    # add function to load button
+                    self.dlg.pushButtonLoad.setEnabled(True)
+                    self.dlg.pushButtonLoad.disconnect()
+                    self.dlg.pushButtonLoad.clicked.connect(lambda: self.add_ows(capabilities_url))
+                except:
+                    QgsMessageLog.logMessage("No attribute accessUrl for this resource", 'GeoPortal.rlp search',
+                                             level=Qgis.Info)
+            if item.data(1, 0).service_type == "download":
+                if item.data(1, 0).serviceSubType == "ATOM":
+                    self.dlg.labelResourceType.setText("ATOM Feed")
+                    try:
+                        access_url = str(item.data(1, 0).accessClient)
+                        self.dlg.labelAccessUrl.setText('<a href="' + access_url + '">Access URL</a>')
+                        self.dlg.labelAccessUrl.setOpenExternalLinks(True)
+                    except:
+                        QgsMessageLog.logMessage("No attribute accessUrl for this resource", 'GeoPortal.rlp search',
+                                                 level=Qgis.Info)
+                if item.data(1, 0).serviceSubType == "REST":
+                    self.dlg.labelResourceType.setText("OGC API Features")
+                    try:
+                        capabilities_url = str(item.data(1, 0).accessUrl).rstrip('/api')
+                        self.dlg.labelAccessUrl.setText('<a href="' + capabilities_url + '">API</a>')
+                        self.dlg.labelAccessUrl.setOpenExternalLinks(True)
+                        # add function to load button
+                        self.dlg.pushButtonLoad.setEnabled(True)
+                        self.dlg.pushButtonLoad.disconnect()
+                        self.dlg.pushButtonLoad.clicked.connect(lambda: self.add_ows(capabilities_url, "wfs"))
+                    except:
+                        QgsMessageLog.logMessage("No attribute accessUrl for this resource", 'GeoPortal.rlp search',
+                                                 level=Qgis.Info)
+                if item.data(1, 0).serviceSubType == "DIRECTWFS":
+                    self.dlg.labelResourceType.setText("WFS")
+                    try:
+                        capabilities_url = str(item.data(1, 0).accessUrl).rstrip('/api')
+                        self.dlg.labelAccessUrl.setText('<a href="' + capabilities_url + '">GetCapabilities</a>')
+                        self.dlg.labelAccessUrl.setOpenExternalLinks(True)
+                        # add function to load button
+                        self.dlg.pushButtonLoad.setEnabled(True)
+                        self.dlg.pushButtonLoad.disconnect()
+                        self.dlg.pushButtonLoad.clicked.connect(lambda: self.add_ows(capabilities_url, "wfs"))
+                    except:
+                        QgsMessageLog.logMessage("No attribute accessUrl for this resource", 'GeoPortal.rlp search',
+                                                 level=Qgis.Info)
+            # TODO alter this for clicked item in tree widget
+            self.dlg.textBrowserResourceAbstract.append(item.text(0))
+            try:
+                metadata_url = str(item.data(1, 0).htmlLink)
+                self.dlg.labelMetadata.setText('<a href="' + metadata_url + '">Online Metadata</a>')
+                self.dlg.labelMetadata.setOpenExternalLinks(True)
+            except:
+                QgsMessageLog.logMessage("No attribute mdLink for this resource", 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+            try:
+                resource_id = item.data(1, 0).id
+            except:
+                QgsMessageLog.logMessage("No attribute id for this resource - no detailed info available",
+                                         'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+                resource_id = 0
+
+
+    def on_select_search_catalogue(self):
+        """Function that is invoked, when the user selects the search resource type"""
+        # switch self.dlg.comboBoxSearchResources to default value
+        # search_domain = str(self.dlg.comboBoxSearchCatalogue.currentData())
+        index = self.dlg.comboBoxSearchResources.findData("wmc")
+        self.dlg.comboBoxSearchResources.setCurrentIndex(index)
+        # delete entries for remote catalogues
+        self.dlg.comboBoxRemoteCsw.clear()
+        self.dlg.comboBoxRemoteCsw.setEnabled(False)
+        pass
+
+
+    def on_select_search_resource(self):
+        """Function that is invoked, when the user selects the search resource type for remote search via csw"""
+        if self.dlg.comboBoxSearchResources.currentData() == "csw":
+            list_domain = str(self.dlg.comboBoxSearchCatalogue.currentData())
+            list_path = "/mapbender/php/mod_showCswList.php"
+            request_url = list_domain + list_path
+            result_content = self.open_remote(request_url)
+            if result_content:
+                result_object = json.loads(bytes(result_content).decode(), object_hook=lambda d: SimpleNamespace(**d))
+                # set options
+                for catalogue in result_object.catalogues:
+                    # QgsMessageLog.logMessage("Catalogues: " + catalogue.title + " - " + catalogue.id, 'GeoPortal.rlp search', level=Qgis.Info)
+                    self.dlg.comboBoxRemoteCsw.addItem(catalogue.title, catalogue.id)
+                    self.dlg.comboBoxRemoteCsw.setEnabled(True)
+            else:
+                QgsMessageLog.logMessage("An error occured while try to list available CSW interfaces: " + request_url, 'GeoPortal.rlp search',
+                                         level=Qgis.Info)
+                # delete options if they are set
+                self.dlg.comboBoxRemoteCsw.clear()
+                # deactivate widget
+                self.dlg.comboBoxRemoteCsw.setEnabled(False)
+        else:
+            self.dlg.comboBoxRemoteCsw.clear()
+            self.dlg.comboBoxRemoteCsw.setEnabled(False)
+
+
     def load_ows_context(self):
+        """Function that is invoked, if an ows context resource should be loaded."""
         # get ows context id from label_field
         context_id = int(self.dlg.labelResourceId.text())
         # search_domain = "https://www.geoportal.rlp.de"
@@ -709,10 +1299,15 @@ class GeoportalRlpMetadataSearch:
         self.build_tree_recursive(result_object.features, parent_node, "")
         self.dlg.treeWidgetResourceDetail.addTopLevelItem(parent_node)
         #self.dlg.treeWidgetResourceDetail.disconnect()
+        try:
+            self.dlg.treeWidgetResourceDetail.itemClicked.disconnect()
+        except:
+            pass
         self.dlg.treeWidgetResourceDetail.itemClicked.connect(self.on_clicked_context_layer)
 
 
     def build_layer_tree_recursive(self, srv, parent):
+        """Funtion to build up the layertree from layer search results."""
         QgsMessageLog.logMessage("srv: " + srv.title + " - type: " + str(type(srv)), 'GeoPortal.rlp search', level=Qgis.Info)
         try:
             iter(srv.layer)
@@ -729,6 +1324,7 @@ class GeoportalRlpMetadataSearch:
 
 
     def build_tree_recursive(self, features, parent, parent_path):
+        """Funtion to build up the layertree from an ows context document."""
         # leaf consists of title, folder and feature object
         # "leaf 1", "/0", feature 1
         # "leaf 2", "/0/1", feature 2
@@ -754,19 +1350,25 @@ class GeoportalRlpMetadataSearch:
                 self.build_tree_recursive(features, newTreeWidgetItem, feature.properties.folder)
 
 
-    def open_remote(self, url):
+    def open_remote(self, url, timeout=4000):
         """
         Howto to do it the QGIS way
         https://python.hotexamples.com/de/examples/qgis.core/QgsNetworkAccessManager/-/python-qgsnetworkaccessmanager-class-examples.html
         """
+        #self.show_loader_img()
         request = QNetworkRequest()
         request.setUrl(QUrl(url))
         # manager = QgsNetworkAccessManager.instance()
         # blockingGet
         # result = manager.blockingGet(request, forceRefresh=True)
+        self.na_manager.setTimeout(timeout)
         result = self.na_manager.blockingGet(request)
+        #if result.errorString() != "":
+        #    QgsMessageLog.logMessage("An error occured while trying to make a network request - Error: " + result.errorString(), 'GeoPortal.rlp search',
+        #                             level=Qgis.Critical)
         # https://qgis.org/api/classQgsNetworkReplyContent.html
         # byte_array
+        #self.hide_loader_img()
         return result.content()
 
 
@@ -822,9 +1424,14 @@ class GeoportalRlpMetadataSearch:
         self.reset_resource_view()
         # read search domain from comboBox
         search_domain = str(self.dlg.comboBoxSearchCatalogue.currentData())
-
+        remote_search = False
         #search_domain = "https://www.geoportal.rlp.de"
-        search_path = "/mapbender/php/mod_callMetadata.php"
+        if resource_type == "csw":
+            search_path = "/mapbender/php/mod_callCswMetadata.php"
+            resource_type = "dataset"
+            remote_search = True
+        else:
+            search_path = "/mapbender/php/mod_callMetadata.php"
         # get string from input field
         search_text_string = self.dlg.textEditSearchText.toPlainText()
         if search_text_string == "":
@@ -842,31 +1449,41 @@ class GeoportalRlpMetadataSearch:
         }
         # add parameters
         request_url = search_domain + search_path + "?" + urllib.parse.urlencode(search_parameters)
+        if resource_type == "dataset":
+            request_url = request_url + "&resolveCoupledResources=true"
+        if remote_search:
+            request_url = request_url + "&catalogueId=" + str(self.dlg.comboBoxRemoteCsw.currentData())
+
         QgsMessageLog.logMessage("Try to open url: " + request_url, 'GeoPortal.rlp search',
                                          level=Qgis.Info)
-        result_content = self.open_remote(request_url)
+        self.show_loader_img()
+        result_content = self.open_remote(request_url, timeout=5000)
+
         if result_content:
             result_object = json.loads(bytes(result_content).decode(), object_hook=lambda d: SimpleNamespace(**d))
+            #result_object = json.loads(bytes(result_content).decode())
         else:
             QgsMessageLog.logMessage("An error occured while try to open url: " + request_url, 'GeoPortal.rlp search',
                                          level=Qgis.Critical)
+        self.hide_loader_img()
         """ After the results came back from the metadata server"""
         self.dlg.treeWidgetResource.clear()
         self.dlg.pushButtonLoad.setEnabled(False)
-        # read metadata from json
+        # read result from json
         if resource_type == 'wmc':
-            number_of_results = result_object.wmc.wmc.md.nresults
-            actual_page = int(result_object.wmc.wmc.md.p)
-            results_per_page = int(result_object.wmc.wmc.md.rpp)
-            search_time = result_object.wmc.wmc.md.genTime
-
+            search_result = result_object.wmc.wmc
         if resource_type == 'wms':
-            number_of_results = result_object.wms.wms.md.nresults
-            actual_page = int(result_object.wms.wms.md.p)
-            results_per_page = int(result_object.wms.wms.md.rpp)
-            search_time = result_object.wms.wms.md.genTime
+            search_result = result_object.wms.wms
+        if resource_type == 'dataset' and remote_search:
+            search_result = result_object.dataset
+        if resource_type == 'dataset' and remote_search == False:
+            search_result = result_object.dataset.dataset
+        number_of_results = search_result.md.nresults
+        actual_page = int(search_result.md.p)
+        results_per_page = int(search_result.md.rpp)
+        search_time = search_result.md.genTime
         # Add info into form
-        self.dlg.numberOfAllResultsLabel.setText(number_of_results)
+        self.dlg.numberOfAllResultsLabel.setText(str(number_of_results))
         self.dlg.numberOfPageLabel.setText(str(actual_page))
         # Calculate number of all pages
         number_of_all_pages = math.ceil(int(number_of_results) / results_per_page)
@@ -879,46 +1496,35 @@ class GeoportalRlpMetadataSearch:
                                          level=Qgis.Info)
         # clear last results
         self.dlg.treeWidgetResource.clear()
+        parent_node = QTreeWidgetItem()
         if resource_type == 'wmc':
-            parent_node = QTreeWidgetItem()
             parent_node.setText(0, "Found OWS Context documents")
-            for wmc in result_object.wmc.wmc.srv:
-                # self.dlg.textBrowser.append(str(wmc.title))
-                # self.dlg.listWidget.disconnect()
-                # all_items = self.dlg.listWidget.findItems('*', Qt.MatchWildcard)
-                # for item in all_items:
-                # item.disconnect()
-                # treeWidget version
-                wmc_node = QTreeWidgetItem()
-                wmc_node.setText(0, wmc.title)
-                wmc_node.setData(1, 0, wmc)
-                parent_node.addChild(wmc_node)
-            self.dlg.treeWidgetResource.expandAll()
         if resource_type == 'wms':
-            parent_node = QTreeWidgetItem()
             parent_node.setText(0, "Found map layers (WMS)")
-            QgsMessageLog.logMessage("Found " + str(len(result_object.wms.wms.srv)) + " srv objects" , 'GeoPortal.rlp search', level=Qgis.Info)
-            for wms in result_object.wms.wms.srv:
-                # self.dlg.textBrowser.append(str(wmc.title))
-                # create service layer item
-                wms_node = QTreeWidgetItem()
-                wms_node.setText(0, wms.title)
-                # add relevant service data to layer object
-                wms_node.setData(1, 0, wms)
-                """
-                Create layer items recursively
-                """
-                # QgsMessageLog.logMessage("Widget cleared", 'GeoPortal.rlp search', level=Qgis.Info)
-                # add layers
-                self.build_layer_tree_recursive(wms, wms_node)
-                #add service node to result list
-                parent_node.addChild(wms_node)
+        if resource_type == 'dataset':
+            parent_node.setText(0, "Found datasets")
+        for resource_type_name in search_result.srv:
+            resource_type_node = QTreeWidgetItem()
+            resource_type_node.setText(0, resource_type_name.title)
+            resource_type_node.setData(1, 0, resource_type_name)
+            """
+            Create layer items recursively
+            """
+            if resource_type == "wms":
+                self.build_layer_tree_recursive(resource_type_name, resource_type_node)
+            parent_node.addChild(resource_type_node)
+        QgsMessageLog.logMessage("Found " + str(len(search_result.srv)) + " srv objects" , 'GeoPortal.rlp search', level=Qgis.Info)
         self.dlg.treeWidgetResource.addTopLevelItem(parent_node)
         self.dlg.treeWidgetResource.expandAll()
         if resource_type == "wmc":
             self.dlg.treeWidgetResource.itemClicked.connect(self.on_clicked_wmc)
         if resource_type == "wms":
             self.dlg.treeWidgetResource.itemClicked.connect(self.on_clicked_layer)
+        if resource_type == "dataset" and remote_search == False:
+            self.dlg.treeWidgetResource.itemClicked.connect(self.on_clicked_dataset)
+        if resource_type == 'dataset' and remote_search:
+            self.dlg.treeWidgetResource.itemClicked.connect(self.on_clicked_remote_dataset)
+        # https://www.geoportal.rlp.de/mapbender/php/mod_getCoupledResourcesForDataset.php
         #self.dlg.treeWidgetResource.itemClicked.connect(lambda: self.on_clicked_resource(self, resource_type))
         self.alter_pager(actual_page)
 
