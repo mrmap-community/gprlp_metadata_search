@@ -6,11 +6,11 @@
 name=GeoPortal.rlp Metadata Search
 qgisMinimumVersion=3.0
 description=GeoPortal.rlp metadata search module
-version=0.1
+version=0.2
 author=Armin Retterath
 email=armin.retterath@gmail.com
 
-about=This plugin uses the REST search interface of GeoPortal.rlp for searching spatial datasets and services
+about=This plugin uses the REST search interface of GeoPortal.rlp for searching spatial datasets and services. It has also an option to search in remote CSW-based catalogues (e.g. in the INSPIRE Geoportal Catalogue). WMS/WFS and OGC API Features interfaces can direct be loaded into the QGIS Browser.
 
 tracker=https://github.com/mrmap-community/GeoPortal.rlp/issues
 repository=https://github.com/mrmap-community/GeoPortal.rlp
