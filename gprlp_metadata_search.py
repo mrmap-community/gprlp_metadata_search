@@ -110,6 +110,10 @@ class GeoportalRlpMetadataSearch:
                 "title": self.tr("Remote CSW"),
                 "value": "csw",
                 },
+            {
+                "title": self.tr("MrMap Context"),
+                "value": "owscontext",
+                },
         ]
         # TODO - remote CWS only for test purposes
         # definition of catalogue uri
@@ -382,9 +386,18 @@ class GeoportalRlpMetadataSearch:
         # QgsMessageLog.logMessage("Title of clicked layer: " + selected_feature.properties.title, 'GeoPortal.rlp search', level=Qgis.Info)
         # add layer title to resource view
         self.dlg.labelResourceType.setText(self.tr("Context layer"))
-        self.dlg.textBrowserResourceAbstract.append(selected_feature.properties.title)
+        try:
+            context_layer_title = selected_feature.properties.title
+        except:
+            QgsMessageLog.logMessage("Context layer has no title!", 'GeoPortal.rlp search', level=Qgis.Info)
+            return
+        self.dlg.textBrowserResourceAbstract.append(context_layer_title)
         # get getmap uri from offering
-        offerings = selected_feature.offerings
+        try:
+            offerings = selected_feature.offerings
+        except:
+            QgsMessageLog.logMessage("Context layer has no offering!", 'GeoPortal.rlp search', level=Qgis.Info)
+            return
         # QgsMessageLog.logMessage("Offerings: " + str(test), 'GeoPortal.rlp search', level=Qgis.Info)
         wms_capabilities = False
         for offering in offerings:
@@ -439,7 +452,6 @@ class GeoportalRlpMetadataSearch:
 
     def on_clicked_wmc(self, item):
         """Show detailed information about the ows context in the detail form"""
-
         self.reset_resource_view()
         try:
             resource_id = item.data(1, 0).id
@@ -453,6 +465,19 @@ class GeoportalRlpMetadataSearch:
         self.dlg.pushButtonLoad.setEnabled(False)
         self.dlg.textBrowserResourceAbstract.clear()
         self.dlg.treeWidgetResourceDetail.clear()
+         # check if mrmap context is selected
+        resource_type = str(self.dlg.comboBoxSearchResources.currentData())
+        if resource_type == "owscontext":
+            search_domain = "https://mrmap.geospatial-interoperability-solutions.eu"
+            search_path = item.data(1, 0).attributes.ogcMapcontextUrl
+            request_url = search_domain + search_path
+            self.dlg.labelAccessUrl.setText('<a href="' + request_url + '">OWS Context json</a>')
+            self.dlg.labelAccessUrl.setOpenExternalLinks(True)
+            self.dlg.pushButtonLoad.setEnabled(True)
+            self.dlg.pushButtonLoad.clicked.disconnect()
+            self.dlg.pushButtonLoad.clicked.connect(self.load_ows_context)
+            return
+
         # load the preview image from registry
         try:
             preview_url = item.data(1, 0).previewURL
@@ -1504,15 +1529,21 @@ class GeoportalRlpMetadataSearch:
         """
         # get ows context id from label_field
         context_id = int(self.dlg.labelResourceId.text())
-        # search_domain = "https://www.geoportal.rlp.de"
-        search_domain = str(self.dlg.comboBoxSearchCatalogue.currentData())
-        search_path = "/mapbender/php/mod_exportWmc.php" #?wmcId=14971&outputFormat=json"
-        load_parameters = {
-            "outputFormat": "json",
-            "wmcId": context_id,
-        }
-        # add parameter
-        request_url = search_domain + search_path + "?" + urllib.parse.urlencode(load_parameters)
+
+        resource_type = str(self.dlg.comboBoxSearchResources.currentData())
+        if resource_type == "owscontext":
+            search_domain = "https://mrmap.geospatial-interoperability-solutions.eu"
+            search_path = "/mrmap-proxy/ows/" + str(context_id)
+            request_url = search_domain + search_path
+        else:
+            search_domain = str(self.dlg.comboBoxSearchCatalogue.currentData())
+            search_path = "/mapbender/php/mod_exportWmc.php" #?wmcId=14971&outputFormat=json"
+            load_parameters = {
+                "outputFormat": "json",
+                "wmcId": context_id,
+            }
+            # add parameter
+            request_url = search_domain + search_path + "?" + urllib.parse.urlencode(load_parameters)
         QgsMessageLog.logMessage("Try to open url: " + request_url, 'GeoPortal.rlp search',
                                          level=Qgis.Info)
         result_content = self.open_remote(request_url)
@@ -1522,17 +1553,22 @@ class GeoportalRlpMetadataSearch:
             QgsMessageLog.logMessage("An error occured while try to open url: " + request_url, 'GeoPortal.rlp search',
                                          level=Qgis.Critical)
         for feature in result_object.features:
-            for offering in feature.offerings:
-                if offering.code == "http://www.opengis.net/spec/owc-atom/1.0/req/wms":
-                    for operation in offering.operations:
-                        if operation.code == "GetMap":
-                            # add wms layer to qgis
-                            # feature.titles
-                            # self.dlg.textBrowser.append(feature.properties.title)
-                            # layer name
-                            # getmap
-                            # ...scale hints
-                            pass
+
+            try:
+                for offering in feature.offerings:
+                    if offering.code == "http://www.opengis.net/spec/owc-atom/1.0/req/wms":
+                        for operation in offering.operations:
+                            if operation.code == "GetMap":
+                                # add wms layer to qgis
+                                # feature.titles
+                                # self.dlg.textBrowser.append(feature.properties.title)
+                                # layer name
+                                # getmap
+                                # ...scale hints
+                                pass
+            except:
+                QgsMessageLog.logMessage("Feature has no offering!", 'GeoPortal.rlp search',
+                                         level=Qgis.Critical)
         # build tree
         # tree = QTreeWidget()
         # last_folder = ""
@@ -1596,7 +1632,7 @@ class GeoportalRlpMetadataSearch:
                 self.build_tree_recursive(features, newTreeWidgetItem, feature.properties.folder)
 
 
-    def open_remote(self, url, timeout=4000):
+    def open_remote(self, url, timeout=4000, content_type=False):
         """
         Howto to do it the QGIS way
         https://python.hotexamples.com/de/examples/qgis.core/QgsNetworkAccessManager/-/python-qgsnetworkaccessmanager-class-examples.html
@@ -1604,14 +1640,16 @@ class GeoportalRlpMetadataSearch:
         #self.show_loader_img()
         request = QNetworkRequest()
         request.setUrl(QUrl(url))
+        if content_type:
+            request.setHeader(QNetworkRequest.ContentTypeHeader, content_type)
         # manager = QgsNetworkAccessManager.instance()
         # blockingGet
         # result = manager.blockingGet(request, forceRefresh=True)
         self.na_manager.setTimeout(timeout)
         result = self.na_manager.blockingGet(request)
-        #if result.errorString() != "":
-        #    QgsMessageLog.logMessage("An error occured while trying to make a network request - Error: " + result.errorString(), 'GeoPortal.rlp search',
-        #                             level=Qgis.Critical)
+        if result.errorString() != "":
+            QgsMessageLog.logMessage("An error occured while trying to make a network request - Error: " + result.errorString(), 'GeoPortal.rlp search',
+                                     level=Qgis.Critical)
         # https://qgis.org/api/classQgsNetworkReplyContent.html
         # byte_array
         #self.hide_loader_img()
@@ -1664,11 +1702,65 @@ class GeoportalRlpMetadataSearch:
             self.dlg.pushButtonPageBack.clicked.connect(lambda: self.start_search(page=(actual_page - 1), resource_type=self.dlg.comboBoxSearchResources.currentData()))
 
 
+    def start_mrmap_search(self, page=1, resource_type='owscontext'):
+        results_per_page = 10
+        self.reset_form(False)
+        self.reset_resource_view()
+        search_domain = "https://mrmap.geospatial-interoperability-solutions.eu"
+        search_path = "/api/v1/registry/mapcontexts/"
+        search_text_string = self.dlg.textEditSearchText.toPlainText()
+        if search_text_string == "":
+            search_text = ""
+        else:
+            search_text = search_text_string
+        search_parameters = {
+            "filter[search]": search_text,
+            "page[number]": page,
+            "page[size]": results_per_page,
+            "fields[MapContext]": "title,ogc_mapcontext_url",
+        }
+        request_url = search_domain + search_path + "?" + urllib.parse.urlencode(search_parameters)
+        QgsMessageLog.logMessage("Try to open url: " + request_url, 'MrMap search',
+                                         level=Qgis.Info)
+        self.show_loader_img()
+        result_content = self.open_remote(request_url, timeout=5000, content_type="application/vnd.api+json")
+        if result_content:
+            result_object = json.loads(bytes(result_content).decode(), object_hook=lambda d: SimpleNamespace(**d))
+        else:
+            QgsMessageLog.logMessage("An error occured while try to open url: " + request_url, 'MrMap search',
+                                         level=Qgis.Critical)
+        self.hide_loader_img()
+        """ After the results came back from the metadata server"""
+        self.dlg.treeWidgetResource.clear()
+        self.dlg.pushButtonLoad.setEnabled(False)
+        # read result from json
+        if resource_type == 'owscontext':
+            search_result = result_object.data
+        # paging and count
+        number_of_results = result_object.meta.pagination.count
+        actual_page = result_object.meta.pagination.page
+        number_of_all_pages = result_object.meta.pagination.pages
+        self.dlg.treeWidgetResource.clear()
+        parent_node = QTreeWidgetItem()
+        parent_node.setText(0, self.tr("Found OWS Context documents"))
+        for resource in search_result:
+            resource_node = QTreeWidgetItem()
+            resource_node.setText(0, resource.attributes.title)
+            resource_node.setData(1, 0, resource)
+            parent_node.addChild(resource_node)
+        self.dlg.treeWidgetResource.addTopLevelItem(parent_node)
+        self.dlg.treeWidgetResource.expandAll()
+        self.dlg.treeWidgetResource.itemClicked.connect(self.on_clicked_wmc)
+
+
     def start_search(self, page=1, resource_type='wmc'):
         """
         Build initial search request
         https://documents.geoportal.rlp.de/mediawiki/index.php/SearchInterface
         """
+        if resource_type=="owscontext":
+            self.start_mrmap_search(page, resource_type)
+            return
         self.reset_form(False)
         self.reset_resource_view()
         # read search domain from comboBox
