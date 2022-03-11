@@ -6,7 +6,7 @@
 name=GeoPortal.rlp Metadata Search
 qgisMinimumVersion=3.0
 description=GeoPortal.rlp metadata search module
-version=0.2
+version=0.3
 author=Armin Retterath
 email=armin.retterath@gmail.com
 
