@@ -14,6 +14,8 @@ QGIS plugin for using the GeoPortal.rlp RESTful metadata SearchInterface (https:
 ### Datensätze / Datasets
 Hier wird nach dem Ressourcentyp "dataset" gesucht. Nach der Selektion eines Datensatztitles in der Trefferliste, werden weitere Metadaten zum Treffer angezeigt. Unter "Weitere Infos" werden die zugehörigen Zugriffsmöglichkeiten über WMS, WFS, ATOM Feeds sowie OGC API Features aufgelistet. Die Selektion einer Zugriffsmöglichkeit zeigt Metadaten zu dieser Option und erlaubt es den Webservice direkt in den QGIS Browser zu übernehmen (WMS / WFS / OGC API Features).
 
+![metadata_search_plugin_dataset_german](https://user-images.githubusercontent.com/1188234/158321601-111e71ca-0b8a-4bea-b0c5-68c52af7efa6.gif)
+
 Search for "dataset". After the selection of the title in the resultlist, some more metadata about the dataset is shown. Under "Further info" the coupled accessoptions via WMS, WFS, ATOM Feed and OGC API Features are shown. The selection of one of this accessoptions give some further metadata about the service and allows to load it directly into QGIS browser (WMS / WFS / OGC API Features).
 
 ### Kartenebenen / Map layers
@@ -30,6 +32,12 @@ The GeoPortal.rlp registry mangages metadata for user-defined context documents 
 Siehe Beschreibung des Plugins zu Begin.
 
 See plugin description at the begin.
+
+#### Geodatenkatalog.DE / German spatial data catalogue
+![metadata_search_plugin_remote_csw_german](https://user-images.githubusercontent.com/1188234/158322943-5e01d859-0f68-47f5-8b1a-0eb763f94a1d.gif)
+#### INSPIRE Katalog / INSPIRE catalogue
+![metadata_search_plugin_remot
+e_csw_german_inspire](https://user-images.githubusercontent.com/1188234/158323058-e1b9d8cb-b88d-40e6-abcc-5a48b352081d.gif)
 
 ## Wechsel zwischen Länderkatalogen / Switch between federal catalogues
 ### Rheinland-Pfalz / Rhineland-Palatinate
