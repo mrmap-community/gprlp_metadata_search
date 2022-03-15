@@ -2,9 +2,12 @@
 QGIS Plugin zur Abfrage der GeoPortal.rlp Metadaten-Suchschnittstelle (https://documents.geoportal.rlp.de/mediawiki/index.php/SearchInterface). Man kann nach registrierten Resourcen suchen und gekoppelte Dienste direkt in den QGIS Browser laden. Neben der Suche im GeoPortal.rlp, kann man auch in den dort registrierten Katalogen suchen. Diese Suche geht über den json-Wrapper der jeweiligen Katalogschnittstelle und löst ebenfalls die Daten-Service Kopplung auf. Die im der jeweiligen GeoPortal.rlp Instanz registrierten Katalogschnittstellen sind als json über folgende URL verfügbar: https://www.geoportal.rlp.de/mapbender/php/mod_showCswList.php. 
 Aktuell stehen im Geoportal des Landes Rheinland-Pfalz sowohl der deutsche, als auch der europäische Geodatenkatalog zur Verfügung. **Ein Nutzer hat damit Zugriff auf alle Geodaten der GDI-DE sowie von INSPIRE!** Die Auflösung der Daten-Service Kopplung erfolgt gemäß den Vorgaben der EU INSPIRE-Richtlinie: https://github.com/INSPIRE-MIF/technical-guidelines/blob/2022.1/metadata/metadata-iso19139/metadata-iso19139.adoc#4124-linking-to-provided-data-sets-using-coupled-resource
 
+![metadata_search_plugin](https://user-images.githubusercontent.com/1188234/158362261-d85e6263-b3f4-4b18-a6c3-6eb2ed25fa7e.png)
+
 
 QGIS plugin for using the GeoPortal.rlp RESTful metadata SearchInterface (https://documents.geoportal.rlp.de/mediawiki/index.php/SearchInterface) to search and load remote data. There is also another similar interface for a simple remote search in registrated CSW. The registrated CSW interfaces are available in json format: https://www.geoportal.rlp.de/mapbender/php/mod_showCswList.php.
 **Actually a user get a direct access to the central spatial data catalogue of Germany (Geodatenkatalog.DE) and the european INSPIRE catalogue!** The plugin allows searching for datasets and it automatically resolves the coupled services for this datasets while using the european - INSPIRE - way of doing this (https://github.com/INSPIRE-MIF/technical-guidelines/blob/2022.1/metadata/metadata-iso19139/metadata-iso19139.adoc).
+
 
 # Video
 ![qgis_3 22_metadata_search_plugin](https://user-images.githubusercontent.com/1188234/154994934-aa8abb57-4b8c-47b3-b18c-c0ad3efb07a1.mp4)
