@@ -1,25 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS>
-<TS version="2.1" language="de_DE" sourcelanguage="en_GB">
+<!DOCTYPE TS><TS version="2.0" language="de_DE" sourcelanguage="en_GB">
 <context>
     <name>GeoportalRlpMetadataSearch</name>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="241"/>
+        <location filename="../gprlp_metadata_search.py" line="245"/>
         <source>&amp;GeoPortal.rlp Metadata Search</source>
         <translation>&amp;GeoPortal.rlp Metadatensuche</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="228"/>
+        <location filename="../gprlp_metadata_search.py" line="232"/>
         <source>GeoPortal.rlp metadata search</source>
         <translation>GeoPortal.rlp Metadatensuche</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="343"/>
+        <location filename="../gprlp_metadata_search.py" line="347"/>
         <source>Resource registration</source>
         <translation>Datenquellen Registrierung</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="452"/>
+        <location filename="../gprlp_metadata_search.py" line="464"/>
         <source>OWS Context</source>
         <translation>OWS Context</translation>
     </message>
@@ -29,7 +28,7 @@
         <translation>Kartenebene</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="894"/>
+        <location filename="../gprlp_metadata_search.py" line="919"/>
         <source>Dataset</source>
         <translation>Datensatz</translation>
     </message>
@@ -39,99 +38,114 @@
         <translation>Entfernter CSW</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="118"/>
+        <location filename="../gprlp_metadata_search.py" line="122"/>
         <source>Rhineland-Palatinate</source>
         <translation>Rheinland-Pfalz</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="122"/>
+        <location filename="../gprlp_metadata_search.py" line="126"/>
         <source>Hesse</source>
         <translation>Hessen</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="126"/>
+        <location filename="../gprlp_metadata_search.py" line="130"/>
         <source>Saarland</source>
         <translation>Saarland</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="384"/>
+        <location filename="../gprlp_metadata_search.py" line="388"/>
         <source>Context layer</source>
         <translation>Context Ebene</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="1354"/>
+        <location filename="../gprlp_metadata_search.py" line="1387"/>
         <source>No preview</source>
         <translation>Keine Vorschau</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="523"/>
+        <location filename="../gprlp_metadata_search.py" line="548"/>
         <source>Map layer</source>
         <translation>Kartenebene</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="1373"/>
+        <location filename="../gprlp_metadata_search.py" line="1406"/>
         <source>Open in Browser</source>
         <translation>In Browser öffnen</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="1449"/>
+        <location filename="../gprlp_metadata_search.py" line="1482"/>
         <source>Online Metadata</source>
         <translation>Online Metadaten</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="879"/>
+        <location filename="../gprlp_metadata_search.py" line="904"/>
         <source>Searching...</source>
         <translation>Suche...</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="887"/>
+        <location filename="../gprlp_metadata_search.py" line="912"/>
         <source>Ready</source>
         <translation>Fertig</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="1154"/>
+        <location filename="../gprlp_metadata_search.py" line="1187"/>
         <source>Access options</source>
         <translation>Zugriffsmöglichkeiten</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="1200"/>
+        <location filename="../gprlp_metadata_search.py" line="1233"/>
         <source>Download options</source>
         <translation>Downloadoptionen</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="1201"/>
+        <location filename="../gprlp_metadata_search.py" line="1234"/>
         <source>View options</source>
         <translation>Anzeigeoptionen</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="1293"/>
+        <location filename="../gprlp_metadata_search.py" line="1326"/>
         <source>WMS Layer</source>
         <translation>WMS Ebene</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="1311"/>
+        <location filename="../gprlp_metadata_search.py" line="1344"/>
         <source>No organisation found</source>
         <translation>Keine Organisation gefunden</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="1645"/>
+        <location filename="../gprlp_metadata_search.py" line="1691"/>
         <source>Preview...</source>
         <translation>Vorschau...</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="1750"/>
+        <location filename="../gprlp_metadata_search.py" line="1851"/>
         <source>Found OWS Context documents</source>
         <translation>Gefundene Context Dokumente</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="1752"/>
+        <location filename="../gprlp_metadata_search.py" line="1853"/>
         <source>Found map layers (WMS)</source>
         <translation>Gefundene WMS Ebenen</translation>
     </message>
     <message>
-        <location filename="../gprlp_metadata_search.py" line="1754"/>
+        <location filename="../gprlp_metadata_search.py" line="1855"/>
         <source>Found datasets</source>
         <translation>Gefundene Datensätze</translation>
+    </message>
+    <message>
+        <location filename="../gprlp_metadata_search.py" line="114"/>
+        <source>MrMap Context</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../gprlp_metadata_search.py" line="1079"/>
+        <source>Help</source>
+        <translation>Hilfe</translation>
+    </message>
+    <message>
+        <location filename="../gprlp_metadata_search.py" line="1846"/>
+        <source>seconds</source>
+        <translation>Sekunden</translation>
     </message>
 </context>
 <context>
