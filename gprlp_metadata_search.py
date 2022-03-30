@@ -95,16 +95,16 @@ class GeoportalRlpMetadataSearch:
         # definition of searchResources new
         self.search_resources_list = [
             {
-                "title": self.tr("OWS Context"),
-                "value": "wmc",
+                "title": self.tr("Dataset"),
+                "value": "dataset",
                 },
             {
                 "title": self.tr("Map Layer"),
                 "value": "wms",
                 },
             {
-                "title": self.tr("Dataset"),
-                "value": "dataset",
+                "title": self.tr("OWS Context"),
+                "value": "wmc",
                 },
             {
                 "title": self.tr("Remote CSW"),
@@ -227,8 +227,8 @@ class GeoportalRlpMetadataSearch:
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
-
-        icon_path = ':/plugins/gprlp_metadata_search/icon.png'
+        icon_path = os.path.join(os.path.dirname(__file__), "mb.png")
+        # icon_path = ':/plugins/gprlp_metadata_search/icon.png'
         self.add_action(
             icon_path,
             text=self.tr(u'GeoPortal.rlp metadata search'),
@@ -1067,10 +1067,18 @@ class GeoportalRlpMetadataSearch:
                 pixmap = QPixmap()
                 pixmap.loadFromData(result_content)
                 # draw preview
-                self.dlg.labelLogo.setPixmap(pixmap.scaled( self.dlg.labelLogo.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                self.dlg.labelLogo.setPixmap(pixmap.scaled(self.dlg.labelLogo.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
             else:
                 QgsMessageLog.logMessage("An error occured while try to open url: " + request_url, 'GeoPortal.rlp search',
                                          level=Qgis.Critical)
+            # add link to github for help
+            help_icon_path = os.path.join(os.path.dirname(__file__), "questionmark.png")
+            pixmap_help = QPixmap()
+            pixmap.load(help_icon_path)
+            self.dlg.labelHelp.setPixmap(pixmap.scaled(self.dlg.labelHelp.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            self.dlg.labelHelp.setText('<a href="https://github.com/mrmap-community/gprlp_metadata_search">' +
+                                       self.tr("Help") + '</a>')
+            self.dlg.labelHelp.setOpenExternalLinks(True)
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
@@ -1489,7 +1497,7 @@ class GeoportalRlpMetadataSearch:
         """Function that is invoked, when the user selects the search resource type"""
         # switch self.dlg.comboBoxSearchResources to default value
         # search_domain = str(self.dlg.comboBoxSearchCatalogue.currentData())
-        index = self.dlg.comboBoxSearchResources.findData("wmc")
+        index = self.dlg.comboBoxSearchResources.findData("dataset")
         self.dlg.comboBoxSearchResources.setCurrentIndex(index)
         # delete entries for remote catalogues
         self.dlg.comboBoxRemoteCsw.clear()
