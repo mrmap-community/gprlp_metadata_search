@@ -1,3 +1,14 @@
+
+# Menu
+Nach der Installation findet man das Plugin unter dem Menupunkt **Web** und in der **Erweiterungswerkzeugleiste**
+
+![metadata_search_plugin_menu_de](https://user-images.githubusercontent.com/1188234/168553178-490b2e64-28d1-423d-b85b-7fe1993b280c.gif)
+
+After the installation you will find the Plugin starter under **Web** and in the **Plugins Toolbar**
+
+![metadata_search_plugin_menu_en](https://user-images.githubusercontent.com/1188234/168553661-00918691-d16d-4a05-afc2-2b68984d3026.gif)
+
+
 # gprlp_metadata_search
 QGIS Plugin zur Abfrage der GeoPortal.rlp Metadaten-Suchschnittstelle (https://documents.geoportal.rlp.de/mediawiki/index.php/SearchInterface). Man kann nach registrierten Resourcen suchen und gekoppelte Dienste direkt in den QGIS Browser laden. Neben der Suche im GeoPortal.rlp, kann man auch in den dort registrierten Katalogen suchen. Diese Suche geht über den json-Wrapper der jeweiligen Katalogschnittstelle und löst ebenfalls die Daten-Service Kopplung auf. Die im der jeweiligen GeoPortal.rlp Instanz registrierten Katalogschnittstellen sind als json über folgende URL verfügbar: https://www.geoportal.rlp.de/mapbender/php/mod_showCswList.php. 
 Aktuell stehen im Geoportal des Landes Rheinland-Pfalz sowohl der deutsche, als auch der europäische Geodatenkatalog zur Verfügung. **Ein Nutzer hat damit Zugriff auf alle Geodaten der GDI-DE sowie von INSPIRE!** Die Auflösung der Daten-Service Kopplung erfolgt gemäß den Vorgaben der EU INSPIRE-Richtlinie: https://github.com/INSPIRE-MIF/technical-guidelines/blob/2022.1/metadata/metadata-iso19139/metadata-iso19139.adoc#4124-linking-to-provided-data-sets-using-coupled-resource
