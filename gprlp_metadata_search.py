@@ -268,84 +268,114 @@ class GeoportalRlpMetadataSearch:
         # https://github.com/qgis/QGIS/blob/master/python/plugins/MetaSearch/dialogs/maindialog.py#L708
         #
         # from https://github.com/qgis/QGIS/blob/4ff41e71ad7a397ca05af4186ea0339af81752cc/python/plugins/MetaSearch/util.py
-
         # QgsMessageLog.logMessage("Url to clean: " + data_url, 'GeoPortal.rlp search', level=Qgis.Info)
+        """
+        problem: qgis 3.30 implements a new QgsSettingsTree - registrating a source works not as it works before !
+
+        """
 
         QgsMessageLog.logMessage("Load WMS cleaned url: " + self.clean_ows_url(data_url), 'GeoPortal.rlp search', level=Qgis.Info)
-        if given_service_type == "wms":
-            service_type = ['OGC:WMS/OGC:WMTS', 'wms', 'wms']
-        if given_service_type == "wfs":
-            service_type = ['OGC:WFS', 'wfs', 'WFS']
-        service_name = 'Result from GeoPortal.rlp search plugin' # % service_type[1]
-        conn_name_matches = []
 
-        # store connection in browser
-        # check if there is a connection with same name
+        qgis_version = Qgis.versionInt()
 
-        self.settings.beginGroup('/qgis/connections-%s' % service_type[1])
-        keys = self.settings.childGroups()
-        self.settings.endGroup()
+        if qgis_version >= 33000:
+            # QgsMessageLog.logMessage("QGIS version is greater than 3.3 : " + Qgis.version() + " registrating resources in browser won't work as expected!", 'GeoPortal.rlp search', level=Qgis.Info)
+            from qgis.core import QgsSettingsTree
+            if given_service_type == "wms":
+                service_type = 'OGC:WMS/OGC:WMTS'
+                sname = 'WMS'
+                dyn_param = ['wms']
+                provider_name = 'wms'
+                setting_node = QgsSettingsTree.node('connections').childNode('ows').childNode('connections')
+            if given_service_type == "wfs":
+                service_type = 'OGC:WFS'
+                sname = 'WFS'
+                dyn_param = ['wfs']
+                provider_name = 'WFS'
+                setting_node = QgsSettingsTree.node('connections').childNode('ows').childNode('connections')
 
-        for key in keys:
-            if key.startswith(service_name):
-                conn_name_matches.append(key)
-        if conn_name_matches:
-            service_name = conn_name_matches[-1]
+            service_name = 'Result from GeoPortal.rlp search plugin' # % service_type[1]
+            conn_name_matches = []
+            dyn_param.append(service_name)
+            setting_node.childSetting('url').setValue(self.clean_ows_url(data_url), dyn_param)
+            browser_model = self.iface.browserModel()
+            #browser_model.initialize()
+            browser_model.reload()
 
-        # check for duplicates
-        """
-        if service_name in keys:  # duplicate found
-            msg = self.tr('Connection {0} exists. Overwrite?').format(service_name)
-            res = QMessageBox.warning(
-                self, self.tr('Saving server'), msg,
-                QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-            if res == QMessageBox.No:  # assign new name with serial
-                service_name = serialize_string(service_name)
-            elif res == QMessageBox.Cancel:
-                return
-        """
+        if qgis_version < 33000:
+            if given_service_type == "wms":
+                service_type = ['OGC:WMS/OGC:WMTS', 'wms', 'wms']
+                provider_name = 'WMS'
+            if given_service_type == "wfs":
+                service_type = ['OGC:WFS', 'wfs', 'WFS']
+                provider_name = 'WFS'
+            service_name = 'Result from GeoPortal.rlp search plugin' # % service_type[1]
+            conn_name_matches = []
+            # store connection in browser
+            # check if there is a connection with same name
+            self.settings.beginGroup('/qgis/connections-%s' % service_type[1])
+            keys = self.settings.childGroups()
+            self.settings.endGroup()
+            for key in keys:
+                #QgsMessageLog.logMessage("key of childGroups: " + key)
+                if key.startswith(service_name):
+                    QgsMessageLog.logMessage("found key in childGroups: " + key)
+                    conn_name_matches.append(key)
+            if conn_name_matches:
+                service_name = conn_name_matches[-1]
+            QgsMessageLog.logMessage("Service name to register: " + service_name)
+            # check for duplicates
+            """
+            if service_name in keys:  # duplicate found
+                msg = self.tr('Connection {0} exists. Overwrite?').format(service_name)
+                res = QMessageBox.warning(
+                    None, self.tr('Saving server'), msg,
+                    QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+                if res == QMessageBox.No:  # assign new name with serial
+                    service_name = serialize_string(service_name)
+                elif res == QMessageBox.Cancel:
+                    return
+            """
+            # no duplicates detected or overwrite is allowed
+            self.settings.beginGroup('/qgis/connections-%s' % service_type[1])
+            self.settings.setValue('/%s/url' % service_name + 'test', self.clean_ows_url(data_url))
+            self.settings.endGroup()
+            #refresh browser content - but howto reload tree?
+            # only refresh the view not the model!
+            # self.browser_model.initialize()
 
-        # no duplicates detected or overwrite is allowed
-        self.settings.beginGroup('/qgis/connections-%s' % service_type[1])
-        self.settings.setValue('/%s/url' % service_name, self.clean_ows_url(data_url))
-        self.settings.endGroup()
-        #refresh browser content - but howto reload tree?
-        # only refresh the view not the model!
-        # self.browser_model.initialize()
-
-        browser_model = self.iface.browserModel()
-        browser_model.reload()
-
-        browser_dock_widget = self.iface.mainWindow().findChildren(QWidget, 'Browser')[0]
-        tree = browser_dock_widget.findChildren(QTreeView)
-        tree_0 = tree[0]
-        proxy = tree_0.model()
-        # print(proxy.rowCount()) - 16
-        # only for the first level - column = 0
-        """
-        for row in range(proxy.rowCount()):
-            index = proxy.index(row, 0)
-            tree_0.expand(index)
-        """
-        # simply add wms layer
-        # rlayer = QgsRasterLayer(clean_ows_url(data_url), 'test', 'wms')
-        # QgsProject.instance().addMapLayer(rlayer)
-        # tree_0.expand(10)
-        # self.iface.mainWindow().findChildren(QWidget, 'Browser')[0].refresh()
-        # browser_model = self.iface.browserModel()
-        # browser_model.reload()
-        # browser_widget = self.iface.mainWindow().findChildren(QWidget, 'Browser')[0]
-
-        # get child with id of wms ... and setExpanded https://doc.qt.io/qt-5/qtreeview.html#setExpanded
-        # QTreeView::setTreePosition(int index)
-        # open wms part?
-        # self.browser_model.initialize()
-        # QgsGui.QgsBrowserDockWidget.initialize()
-        # QgsGui.
+            browser_model = self.iface.browserModel()
+            #browser_model.initialize()
+            browser_model.reload()
+            browser_dock_widget = self.iface.mainWindow().findChildren(QWidget, 'Browser')[0]
+            tree = browser_dock_widget.findChildren(QTreeView)
+            tree_0 = tree[0]
+            proxy = tree_0.model()
+            # print(proxy.rowCount()) - 16
+            # only for the first level - column = 0
+            """
+            for row in range(proxy.rowCount()):
+                index = proxy.index(row, 0)
+                tree_0.expand(index)
+            """
+            # simply add wms layer
+            # rlayer = QgsRasterLayer(clean_ows_url(data_url), 'test', 'wms')
+            # QgsProject.instance().addMapLayer(rlayer)
+            # tree_0.expand(10)
+            # self.iface.mainWindow().findChildren(QWidget, 'Browser')[0].refresh()
+            # browser_model = self.iface.browserModel()
+            # browser_model.reload()
+            # browser_widget = self.iface.mainWindow().findChildren(QWidget, 'Browser')[0]
+            # get child with id of wms ... and setExpanded https://doc.qt.io/qt-5/qtreeview.html#setExpanded
+            # QTreeView::setTreePosition(int index)
+            # open wms part?
+            # self.browser_model.initialize()
+            # QgsGui.QgsBrowserDockWidget.initialize()
+            # QgsGui.
         output = QgsMessageViewer()
         output.setFixedSize(500,200)
         output.setTitle(self.tr("Resource registration"))
-        output_text = "%s Resource added to QGIS Browser under 'Result from GeoPortal.rlp search plugin'. You may open the Browser and add it to your Layers." % service_type[1]
+        output_text = "%s Resource added to QGIS Browser under 'Result from GeoPortal.rlp search plugin'. You may open the Browser and add it to your Layers." % provider_name
         output.setMessageAsPlainText(output_text)
         output.showMessage()
         return
@@ -1604,6 +1634,7 @@ class GeoportalRlpMetadataSearch:
             for layer in srv.layer:
                 newTreeWidgetItem = QTreeWidgetItem()
                 newTreeWidgetItem.setText(0, layer.title)
+                newTreeWidgetItem.setToolTip(0, layer.title)
                 newTreeWidgetItem.setData(1, 0, layer)
                 parent.addChild(newTreeWidgetItem)
                 self.build_layer_tree_recursive(layer, newTreeWidgetItem)
@@ -1650,6 +1681,7 @@ class GeoportalRlpMetadataSearch:
         request.setUrl(QUrl(url))
         if content_type:
             request.setHeader(QNetworkRequest.ContentTypeHeader, content_type)
+        request.setHeader(QNetworkRequest.UserAgentHeader, "QGIS 3.X - Metadata search")
         # manager = QgsNetworkAccessManager.instance()
         # blockingGet
         # result = manager.blockingGet(request, forceRefresh=True)
@@ -1754,6 +1786,7 @@ class GeoportalRlpMetadataSearch:
         for resource in search_result:
             resource_node = QTreeWidgetItem()
             resource_node.setText(0, resource.attributes.title)
+            resource_node.setToolTip(0, resource.attributes.title)
             resource_node.setData(1, 0, resource)
             parent_node.addChild(resource_node)
         self.dlg.treeWidgetResource.addTopLevelItem(parent_node)
@@ -1856,6 +1889,7 @@ class GeoportalRlpMetadataSearch:
         for resource_type_name in search_result.srv:
             resource_type_node = QTreeWidgetItem()
             resource_type_node.setText(0, resource_type_name.title)
+            resource_type_node.setToolTip(0, resource_type_name.title)
             """
             if resource_type == 'dataset' and remote_search is False:
                 resource_type_name.respOrg = search_result.srv.respOrg
